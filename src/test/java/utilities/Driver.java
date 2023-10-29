@@ -1,74 +1,84 @@
 package utilities;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
+import org.openqa.selenium.PageLoadStrategy;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.safari.SafariDriver;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 public class Driver {
-    private static WebDriver driver;
+    private Driver(){}
 
-    private Driver() {
+    /*
+    We make WebDriver private, because we want to close access from outside the class.
+    We make it static because we will use it in a static method.
+     */
+    private static WebDriver driver; // value is null by default
 
-    }
+    /*
+    Create a re-usable utility method which will return same driver instance when we call it
+     */
+    public static WebDriver getDriver(){
 
-    public static WebDriver getDriver() {
+        if (driver == null){
+
+            /*
+            We read our browserType from configuration.properties.
+            This way, we can control which browser is opened from outside our code, from configuration.properties.
+             */
+            String browserType = ConfigReader.getProperty("browser");
 
 
+            /*
+                Depending on the browserType that will be return from configuration.properties file
+                switch statement will determine the case, and open the matching browser
+            */
+            switch (browserType){
 
-        String desiredBrowser = ConfigReader.getProperty("browser");
+                case "chrome":
+                    driver = new ChromeDriver();
+                    driver.manage().window().maximize();
+                    driver.manage().timeouts().implicitlyWait(15, TimeUnit.SECONDS);
+                    ChromeOptions chromeOptions = new ChromeOptions();
+                    chromeOptions.setPageLoadStrategy(PageLoadStrategy.EAGER);
+                    chromeOptions.setPageLoadTimeout(Duration.ofSeconds(14));
+                    break;
 
+                case "safari" :
+                    driver=new SafariDriver();
+                    driver.manage().window().maximize();
+                    driver.manage().timeouts().implicitlyWait(15, TimeUnit.SECONDS);
+                    break;
 
-
-        if (driver == null) {
-
-            switch (desiredBrowser) {
                 case "firefox":
-                    WebDriverManager.firefoxdriver().setup();
                     driver = new FirefoxDriver();
-                    break;
-                case "safari":
-                    WebDriverManager.safaridriver().setup();
-                    driver = new SafariDriver();
+                    driver.manage().window().maximize();
+                    driver.manage().timeouts().implicitlyWait(15, TimeUnit.SECONDS);
                     break;
 
-                case "edge":
-                    WebDriverManager.edgedriver().setup();
-                    driver = new EdgeDriver();
-                    break;
                 default:
-                    WebDriverManager.chromedriver().setup();
-                    driver=new ChromeDriver();
-
-
+                    System.out.println("Unknown browser type: "+browserType);
+                    driver=null;
 
             }
-
-            driver.manage().window().maximize();
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(15));
-            //driver.manage().deleteAllCookies();
         }
 
         return driver;
+
     }
 
-
-    public static void closeDriver() {
-
-        if (driver != null) {
-            driver.close();
-            driver = null;
-        }
-    }
-
-    public static void quitDriver() {
-
-        if (driver != null) {
-            driver.quit();
+    /*
+    This method will make sure our driver value is always null after using quit() method
+     */
+    public static void closeDriver(){
+        if (driver != null){
+            driver.quit(); // this line will terminate the existing session. Value will not even be null
             driver = null;
         }
     }
